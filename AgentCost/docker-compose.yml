@@ -1,0 +1,21 @@
+services:
+  agentcost:
+    build: .
+    container_name: agentcost
+    ports:
+      - "8000:8000"
+    environment:
+      AGENTCOST_BUDGET: ${AGENTCOST_BUDGET:-5.00}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - agentcost-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/stats', timeout=2).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  agentcost-data:

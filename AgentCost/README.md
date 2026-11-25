@@ -7,10 +7,12 @@
 **A self-hosted gateway + dashboard for LLM cost attribution.**
 
 ![Status](https://img.shields.io/badge/status-in%20progress-f0a500?style=for-the-badge)
-![Phase](https://img.shields.io/badge/phase-1%20of%204%20·%20local%20MVP-00D2FF?style=for-the-badge)
+![Phase](https://img.shields.io/badge/phase-2%20of%204%20·%20containerised-00D2FF?style=for-the-badge)
+![Tests](https://img.shields.io/badge/tests-12%20passing-34d399?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
 <img src="architecture.png" alt="AgentCost architecture" width="100%" />
 
@@ -20,14 +22,14 @@
 
 ## 📍 Project status
 
-**Where it stands:** Phase 1 is working locally — the gateway, the cost engine, storage and the dashboard all run. Nothing is deployed yet.
+**Where it stands:** Phase 1 and 2 are done — the gateway, cost engine, storage and dashboard work locally, the whole thing runs in Docker with one command, and 12 tests pass. Nothing is deployed to the cloud yet.
 
 | Phase | What | Status |
 |:--|:--|:--|
 | **1 · Local MVP** | FastAPI gateway · cost engine · SQLite logging · dashboard · budget alert · offline mock provider | ✅ **done** |
-| **2 · Containerise** | `Dockerfile` · `docker-compose.yml` · healthcheck · env-based config | 🚧 **next** |
-| **3 · Deploy on AWS** | Terraform (ECR + ECS Fargate + RDS/SQLite on EBS) · live public URL · CloudWatch logs | ⬜ not started |
-| **4 · Harden & document** | tests · API key auth · CSV export · per-user drilldown · demo video | ⬜ not started |
+| **2 · Containerise + test** | `Dockerfile` · `docker-compose.yml` · healthcheck · env config · 12 pytest tests | ✅ **done** |
+| **3 · Deploy on AWS** | Terraform (ECR + ECS Fargate + RDS) · live public URL · CloudWatch logs · CI image push | 🚧 **next** |
+| **4 · Harden** | API keys per tenant · rate limiting · per-user drilldown · CSV export · email digest | ⬜ not started |
 
 Progress detail lives in [ROADMAP.md](ROADMAP.md). Last updated: **25 Nov 2026**.
 
@@ -74,6 +76,23 @@ uvicorn app:app --reload  # or: python -m uvicorn app:app --reload
 
 Open **http://127.0.0.1:8000/dashboard**
 
+### With Docker (one command)
+
+```bash
+cp .env.example .env      # optional: set AGENTCOST_BUDGET / API keys
+docker compose up --build
+```
+
+Same dashboard at **http://127.0.0.1:8000/dashboard**. SQLite is kept in the
+`agentcost-data` volume, so data survives restarts.
+
+### Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 Send a call through the gateway:
 
 ```bash
@@ -94,10 +113,13 @@ curl -X POST http://127.0.0.1:8000/v1/chat \
 | `seed.py` | Generates realistic demo traffic | ✅ |
 | `architecture.png` | Diagram used in this README | ✅ |
 | `dashboard.png` | Screenshot used in this README | ✅ |
-| `Dockerfile` | Container image for the gateway | 🚧 next |
-| `docker-compose.yml` | Gateway + volume, one command to run | 🚧 next |
-| `tests/test_app.py` | Cost math + gateway + dashboard tests | ⬜ |
-| `infra/*.tf` | Terraform: ECR, ECS Fargate, logs, DB | ⬜ |
+| `Dockerfile` | Container image for the gateway | ✅ |
+| `docker-compose.yml` | Gateway + named volume, one command to run | ✅ |
+| `.env.example` | Budget + API key template | ✅ |
+| `.dockerignore` | Keeps the image small | ✅ |
+| `tests/test_app.py` | 12 tests: cost math, gateway contract, dashboard | ✅ |
+| `ROADMAP.md` | Phase-by-phase checklist | ✅ |
+| `infra/*.tf` | Terraform: ECR, ECS Fargate, logs, DB | ⬜ next |
 | `.github/workflows/ci.yml` | Test + build + push image on every push | ⬜ |
 
 ---
@@ -108,6 +130,7 @@ curl -X POST http://127.0.0.1:8000/v1/chat \
 - **Price table is manual.** Providers change prices; `pricing.py` must be updated by hand.
 - **Token counts from the provider.** For the mock provider they are estimated (~4 chars per token), not exact.
 - **Single process.** Not built for concurrent writes at scale yet — that is what Phase 3 (RDS) fixes.
+- **Docker image not tested on ARM/Windows containers** — only `linux/amd64` with python:3.12-slim.
 
 ---
 
@@ -116,8 +139,8 @@ curl -X POST http://127.0.0.1:8000/v1/chat \
 - [x] Gateway + cost calculator + SQLite logging
 - [x] Dashboard: totals, per-agent / per-task / per-model breakdown, budget alert
 - [x] Offline mock provider (runs with zero API keys)
-- [ ] `Dockerfile` + `docker-compose.yml`
-- [ ] Tests: cost math, gateway contract, empty-database dashboard
+- [x] `Dockerfile` + `docker-compose.yml` + `.env.example`
+- [x] 12 tests: cost math, gateway contract, tagging, budget flag, dashboard render
 - [ ] GitHub Actions CI (lint + tests on push)
 - [ ] Terraform deploy on AWS (ECS Fargate + RDS) with a public URL
 - [ ] API keys per tenant + rate limiting

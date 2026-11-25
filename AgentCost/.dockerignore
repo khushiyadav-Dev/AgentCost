@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+.git
+.gitignore
+.venv/
+venv/
+agentcost.db
+*.db
+tests/
+*.md
+architecture.png
+dashboard.png
+.env
